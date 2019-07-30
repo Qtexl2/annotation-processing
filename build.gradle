@@ -1,0 +1,17 @@
+plugins {
+    id 'java'
+}
+
+group 'local.annotation'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor project(':processor-modul')
+    compile project(':processor-modul')
+}
