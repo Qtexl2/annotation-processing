@@ -3,7 +3,7 @@ import annotation.WebSocketHandler;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 @WebSocketController(url = "/bank", idKey = "id")
-public class BankWsHandler extends AbstractWebSocketHandler {
+public class BankWsHandler {
 
 
     @WebSocketHandler(idValue = "bill")

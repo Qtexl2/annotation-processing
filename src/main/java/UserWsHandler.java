@@ -3,7 +3,9 @@ import annotation.WebSocketHandler;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 @WebSocketController(url = "/user", idKey = "id")
-public class UserWsHandler extends AbstractWebSocketHandler {
+public class UserWsHandler{
+
+    private String gleb = "zhukel";
 
     @WebSocketHandler(idValue = "login")
     public void handleLogin(){
