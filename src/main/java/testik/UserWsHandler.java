@@ -16,7 +16,7 @@ public class UserWsHandler {
     }
 
     @WebSocketHandler(idValue = "login")
-    public void handleLogin(WebSocketSession ws) {
+    public void handleLogin(WebSocketSession ws, DToshka dto) {
         System.out.println("lol login");
     }
 

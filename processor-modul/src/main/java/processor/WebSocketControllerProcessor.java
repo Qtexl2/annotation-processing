@@ -204,7 +204,7 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
                 if(annotation != null){
                     String value = annotation.idValue();
                     switchMethod.addCode("case \"" +value+ "\":");
-                    addInvokeReadyMethod(switchMethod, item, fieldName);
+                    addInvokeReadyMethod(switchMethod, item, fieldName, value);
                     switchMethod.addStatement("break");
                 }
             }
@@ -213,7 +213,7 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         return switchMethod.build();
     }
 
-    private void addInvokeReadyMethod(MethodSpec.Builder builder, Element element, String fieldName){
+    private void addInvokeReadyMethod(MethodSpec.Builder builder, Element element, String fieldName, String value){
         Symbol.MethodSymbol method = (Symbol.MethodSymbol) element;
         StringBuilder code = new StringBuilder(fieldName + "." + method.getSimpleName() + "(");
         System.out.println(method.getDefaultValue());
@@ -222,11 +222,15 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         for (Symbol.VarSymbol parameter : parameters) {
             Type type = parameter.asType();
             if(type.toString().equals("org.springframework.web.socket.WebSocketSession")){
-                code.append(wsSession + ",");
+                code.append(wsSession);
             } else {
-
+                String nameVariable = value + type.asElement().getSimpleName();
+                System.out.println(nameVariable);
+                builder.addStatement("$T " + nameVariable + " = " + objectMapperName + ".readValue(" + message + ".getPayload(), $T.class)", type, type);
+//
+                code.append(nameVariable);
             }
-
+            code.append(",");
         }
 
         if(parameters.length() != 0){
