@@ -2,6 +2,7 @@ package processor;
 
 import annotation.WebSocketController;
 import annotation.WebSocketHandler;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -11,6 +12,7 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.util.Name;
@@ -52,7 +54,8 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
     Types typeUtils;
     Elements elementUtils;
     private static final String objectMapperName = "objectMapper";
-
+    private static final String wsSession = "wsSession";
+    private static final String message = "message";
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         filer = processingEnv.getFiler();
@@ -67,9 +70,6 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         MethodSpec.Builder builderConstructor = MethodSpec.constructorBuilder();
         CodeBlock.Builder codeBuilder = CodeBlock.builder();
         for (Element element : roundEnv.getElementsAnnotatedWith(WebSocketController.class)) {
-//            createProxySwitchMethod(element);
-
-
 
             String nameField = getFieldName(element.getSimpleName().toString());
             String proxyType = createProxyType(element, nameField);
@@ -140,7 +140,7 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
                 .addAnnotation(Component.class)
                 .superclass(TextWebSocketHandler.class)
                 .addMethod(createProxyTypeConstructor(element, fieldName, typeName))
-                .addMethod(createProxySwitchMethod(element))
+                .addMethod(createProxySwitchMethod(element, fieldName))
                 .build();
 
         JavaFile javaFile = JavaFile
@@ -183,27 +183,58 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         return builder.build();
     }
 //
-    private MethodSpec createProxySwitchMethod(Element element){
+    private MethodSpec createProxySwitchMethod(Element element, String fieldName){
         WebSocketController controllerAnnotation = element.getAnnotation(WebSocketController.class);
         String key = controllerAnnotation.idKey();
-        System.out.println(key);
+
+        String json = "jsonNode";
         MethodSpec.Builder switchMethod = MethodSpec.methodBuilder("handleTextMessage")
                 .addModifiers(Modifier.PROTECTED)
                 .returns(void.class)
-                .addParameter(WebSocketSession.class, "wsSession")
-                .addParameter(TextMessage.class, "message");
+                .addParameter(WebSocketSession.class, wsSession)
+                .addParameter(TextMessage.class, message)
+                .addException(Exception.class)
+                .addStatement("$T " + json +  " = " + objectMapperName + ".readTree(" + message + ".getPayload())" , JsonNode.class)
+                .beginControlFlow("switch(" + json +".get(\"" + key + "\").asText())");
+
 
         for (Element item : element.getEnclosedElements()) {
             if (item.getKind() == ElementKind.METHOD){
                 WebSocketHandler annotation = item.getAnnotation(WebSocketHandler.class);
                 if(annotation != null){
-                    System.out.println(annotation.idValue());
+                    String value = annotation.idValue();
+                    switchMethod.addCode("case \"" +value+ "\":");
+                    addInvokeReadyMethod(switchMethod, item, fieldName);
+                    switchMethod.addStatement("break");
                 }
             }
         }
+        switchMethod.endControlFlow();
         return switchMethod.build();
     }
 
+    private void addInvokeReadyMethod(MethodSpec.Builder builder, Element element, String fieldName){
+        Symbol.MethodSymbol method = (Symbol.MethodSymbol) element;
+        StringBuilder code = new StringBuilder(fieldName + "." + method.getSimpleName() + "(");
+        System.out.println(method.getDefaultValue());
+        System.out.println(method.getReturnType());
+        com.sun.tools.javac.util.List<Symbol.VarSymbol> parameters = method.getParameters();
+        for (Symbol.VarSymbol parameter : parameters) {
+            Type type = parameter.asType();
+            if(type.toString().equals("org.springframework.web.socket.WebSocketSession")){
+                code.append(wsSession + ",");
+            } else {
+
+            }
+
+        }
+
+        if(parameters.length() != 0){
+            code.deleteCharAt(code.length() -1);
+        }
+        code.append(");");
+        builder.addCode(code.toString());
+    }
 
     private String getFieldName(String name) {
         char firstLetter = Character.toLowerCase(name.charAt(0));

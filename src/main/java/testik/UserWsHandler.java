@@ -2,6 +2,7 @@ package testik;
 
 import annotation.WebSocketController;
 import annotation.WebSocketHandler;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.util.List;
 
@@ -15,8 +16,13 @@ public class UserWsHandler {
     }
 
     @WebSocketHandler(idValue = "login")
-    public void handleLogin() {
+    public void handleLogin(WebSocketSession ws) {
         System.out.println("lol login");
     }
 
+
+    @WebSocketHandler(idValue = "zacini")
+    public void handleZacini() {
+        System.out.println("lol login");
+    }
 }
