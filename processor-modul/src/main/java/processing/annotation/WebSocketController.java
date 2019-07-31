@@ -1,11 +1,14 @@
-package annotation;
+package processing.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface AddMethod {
+@Target(ElementType.TYPE)
+public @interface WebSocketController {
+    String url();
+
+    String idKey();
 }

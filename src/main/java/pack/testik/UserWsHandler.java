@@ -1,7 +1,7 @@
-package testik;
+package pack.testik;
 
-import annotation.WebSocketController;
-import annotation.WebSocketHandler;
+import processing.annotation.WebSocketController;
+import processing.annotation.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.List;

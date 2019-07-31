@@ -1,4 +1,2 @@
-processor.ActionProcessor
-processor.AddMethodProcessor
-processor.WebSocketControllerProcessor
-processor.WebSocketHandlerProcessor
+processing.processor.WebSocketControllerProcessor
+processing.processor.WebSocketHandlerProcessor

@@ -1,4 +1,4 @@
-package annotation;
+package processing.annotation;
 
 
 import java.lang.annotation.ElementType;

@@ -1,4 +1,4 @@
-package testik;
+package pack.testik;
 
 public class DToshka {
     private String name;

@@ -1,5 +1,3 @@
 rootProject.name = 'annotation-processing'
-include 'checker'
-include 'annotation-modul'
 include 'processor-modul'
 

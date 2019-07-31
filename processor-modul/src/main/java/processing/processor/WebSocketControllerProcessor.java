@@ -1,7 +1,7 @@
-package processor;
+package processing.processor;
 
-import annotation.WebSocketController;
-import annotation.WebSocketHandler;
+import processing.annotation.WebSocketController;
+import processing.annotation.WebSocketHandler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.javapoet.ClassName;
@@ -12,7 +12,6 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import com.squareup.javapoet.TypeVariableName;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.util.Name;
@@ -33,7 +32,6 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -45,7 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@SupportedAnnotationTypes({"annotation.WebSocketController", "annotation.WebSocketHandler"})
+@SupportedAnnotationTypes({"processing.annotation.WebSocketController", "processing.annotation.WebSocketHandler"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class WebSocketControllerProcessor extends AbstractProcessor {
 

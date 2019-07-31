@@ -1,8 +1,7 @@
-package lolka;
+package pack.lolka;
 
-import annotation.WebSocketController;
-import annotation.WebSocketHandler;
-import org.springframework.web.socket.handler.AbstractWebSocketHandler;
+import processing.annotation.WebSocketController;
+import processing.annotation.WebSocketHandler;
 
 @WebSocketController(url = "/bank", idKey = "id")
 public class BankWsHandler {

@@ -1,4 +1,4 @@
-package processor;
+package processing.processor;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -8,7 +8,7 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
 import java.util.Set;
 
-@SupportedAnnotationTypes({"annotation.WebSocketHandler"})
+@SupportedAnnotationTypes({"processing.annotation.WebSocketHandler"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class WebSocketHandlerProcessor extends AbstractProcessor {
     @Override
