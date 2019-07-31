@@ -1,25 +1,41 @@
 package processor;
 
 import annotation.WebSocketController;
-import com.squareup.javapoet.*;
+import annotation.WebSocketHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.util.Name;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import javax.annotation.processing.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Filer;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import java.io.IOException;
@@ -27,13 +43,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@SupportedAnnotationTypes({"annotation.WebSocketController"})
+@SupportedAnnotationTypes({"annotation.WebSocketController", "annotation.WebSocketHandler"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class WebSocketControllerProcessor extends AbstractProcessor {
 
     Filer filer;
+    TypeSpec configFile;
     Types typeUtils;
     Elements elementUtils;
+    private static final String objectMapperName = "objectMapper";
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -49,11 +67,15 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         MethodSpec.Builder builderConstructor = MethodSpec.constructorBuilder();
         CodeBlock.Builder codeBuilder = CodeBlock.builder();
         for (Element element : roundEnv.getElementsAnnotatedWith(WebSocketController.class)) {
+//            createProxySwitchMethod(element);
+
+
 
             String nameField = getFieldName(element.getSimpleName().toString());
             String proxyType = createProxyType(element, nameField);
 
             ClassName type = ClassName.bestGuess(proxyType);
+
             FieldSpec filed = FieldSpec.builder(type, nameField)
                     .addModifiers(Modifier.PRIVATE)
                     .build();
@@ -67,15 +89,16 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
                             .addStatement("this." + nameField + " = " + nameField)
                             .build()
             );
-
             WebSocketController annotation = element.getAnnotation(WebSocketController.class);
             String url = annotation.url();
             String format = registry + ".addHandler(" + nameField + ", \"" + url + "\")";
             codeBuilder.addStatement(format);
 
         }
-
-        TypeSpec wsConfiguration = TypeSpec
+        if (configFile != null) {
+            return true;
+        }
+        configFile = TypeSpec
                 .classBuilder("WebSocketConfiguration")
                 .addModifiers(Modifier.PUBLIC)
                 .addFields(fields)
@@ -93,7 +116,7 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
                 .build();
 
         JavaFile javaFile = JavaFile
-                .builder("", wsConfiguration)
+                .builder("", configFile)
                 .indent("    ")
                 .build();
         try {
@@ -101,20 +124,23 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return false;
+        return true;
     }
 
     private String createProxyType(Element element, String fieldName) {
         TypeName typeName = TypeName.get(element.asType());
-        String proxyType = "Proxy" + typeName.toString();
+        String proxyType = "Proxy" + element.getSimpleName().toString();
         TypeSpec wsConfiguration = TypeSpec
                 .classBuilder(proxyType)
                 .addModifiers(Modifier.PUBLIC)
                 .addField(FieldSpec.builder(typeName, fieldName, Modifier.PRIVATE, Modifier.FINAL)
                         .build())
+                .addField(FieldSpec.builder(ObjectMapper.class, objectMapperName, Modifier.PRIVATE, Modifier.FINAL)
+                        .build())
                 .addAnnotation(Component.class)
                 .superclass(TextWebSocketHandler.class)
-                .addMethod(createConstructor(element, fieldName, typeName))
+                .addMethod(createProxyTypeConstructor(element, fieldName, typeName))
+                .addMethod(createProxySwitchMethod(element))
                 .build();
 
         JavaFile javaFile = JavaFile
@@ -129,11 +155,14 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         }
     }
 
-    private MethodSpec createConstructor(Element element, String fieldName, TypeName typeName) {
+    private MethodSpec createProxyTypeConstructor(Element element, String fieldName, TypeName typeName) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
+                .addParameter(ObjectMapper.class, objectMapperName)
+                .addCode("this." + objectMapperName + " = " + objectMapperName + ";")
+                .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Autowired.class);
 
-        StringBuilder code = new StringBuilder("this." + fieldName + " = new " + typeName + "(");
+        StringBuilder code = new StringBuilder("this." + fieldName + " = new " + element.getSimpleName() + "(");
         for (Element enclosedElement : element.getEnclosedElements()) {
             if (enclosedElement.getKind() == ElementKind.CONSTRUCTOR) {
                 com.sun.tools.javac.util.List<Symbol.VarSymbol> parameters = ((Symbol.MethodSymbol) enclosedElement).getParameters();
@@ -153,6 +182,28 @@ public class WebSocketControllerProcessor extends AbstractProcessor {
         builder.addCode(code.toString());
         return builder.build();
     }
+//
+    private MethodSpec createProxySwitchMethod(Element element){
+        WebSocketController controllerAnnotation = element.getAnnotation(WebSocketController.class);
+        String key = controllerAnnotation.idKey();
+        System.out.println(key);
+        MethodSpec.Builder switchMethod = MethodSpec.methodBuilder("handleTextMessage")
+                .addModifiers(Modifier.PROTECTED)
+                .returns(void.class)
+                .addParameter(WebSocketSession.class, "wsSession")
+                .addParameter(TextMessage.class, "message");
+
+        for (Element item : element.getEnclosedElements()) {
+            if (item.getKind() == ElementKind.METHOD){
+                WebSocketHandler annotation = item.getAnnotation(WebSocketHandler.class);
+                if(annotation != null){
+                    System.out.println(annotation.idValue());
+                }
+            }
+        }
+        return switchMethod.build();
+    }
+
 
     private String getFieldName(String name) {
         char firstLetter = Character.toLowerCase(name.charAt(0));

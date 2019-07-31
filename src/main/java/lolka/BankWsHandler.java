@@ -1,3 +1,5 @@
+package lolka;
+
 import annotation.WebSocketController;
 import annotation.WebSocketHandler;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
